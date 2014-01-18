@@ -11,6 +11,7 @@ rowoffset = 50 # mm
 # Copy src as child of dst.
 def shallowCopy(dst, src):
   elem = etree.SubElement(dst, src.tag)
+  elem.text = src.text
   for k, v in src.items():
     elem.set(k, v)
   return elem
@@ -18,6 +19,7 @@ def shallowCopy(dst, src):
 # Copy src as child of dst.
 def offsetCopy(dst, src, x, y):
   elem = etree.SubElement(dst, src.tag)
+  elem.text = src.text
   for k, v in src.items():
     if k == 'name' and elem.tag != 'attribute':
       elem.set(k, '%s-%d-%d' % (v, x, y))
