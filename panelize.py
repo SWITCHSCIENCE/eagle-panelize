@@ -17,11 +17,11 @@ def shallowCopy(dst, src):
   return elem
 
 # Copy src as child of dst.
-def offsetCopy(dst, src, x, y):
+def offsetCopy(dst, src, x, y, recursive):
   elem = etree.SubElement(dst, src.tag)
   elem.text = src.text
   for k, v in src.items():
-    if k == 'name' and elem.tag != 'attribute':
+    if k == 'name':
       elem.set(k, '%s-%d-%d' % (v, x, y))
     elif k == 'element':
       elem.set(k, '%s-%d-%d' % (v, x, y))
@@ -31,24 +31,29 @@ def offsetCopy(dst, src, x, y):
       elem.set(k, str(float(v) + y * rowoffset))
     else:
       elem.set(k, v)
-  for child in src:
-    offsetCopy(elem, child, x, y)
+  if recursive:
+    for child in src:
+      offsetCopy(elem, child, x, y, True)
   return elem
 
 # Copy children of src as children of dst.
-def offsetCopyChildren(dst, src):
+def offsetCopyChildren(dst, src, recursive):
   for x in range(cols):
     for y in range(rows):
       for elem in src:
-        offsetCopy(dst, elem, x, y)
+        offsetCopy(dst, elem, x, y, recursive)
 
 src = etree.parse(sys.stdin)
 eagle = src.getroot()
 if eagle.tag != 'eagle':
   raise 'XML %s not supported.' % eagle.tag
 
-dsteagle = etree.Element('eagle', version=eagle.get('version'))
+dsteagle = etree.Element('eagle')
+for k, v in eagle.items():
+  dsteagle.set(k, v)
 dst = etree.ElementTree(dsteagle)
+
+partnames = etree.Element('partnames')
 
 for child in eagle:
   if child.tag == 'drawing':
@@ -60,17 +65,43 @@ for child in eagle:
         dstboard = shallowCopy(dstdrawing, child)
         for child in board:
           if child.tag == 'plain':
-            offsetCopyChildren(shallowCopy(dstboard, child), child)
+            dstplain = shallowCopy(dstboard, child)
+            offsetCopyChildren(dstplain, child, False)
           elif child.tag == 'elements':
-            offsetCopyChildren(shallowCopy(dstboard, child), child)
+            elements = child
+            dstelements = shallowCopy(dstboard, child)
+            for x in range(cols):
+              for y in range(rows):
+                for element in elements:
+                  offsetCopy(dstelements, element, x, y, False)
+
+                  # Save <attribute> for later addition to <plain>
+                  attribute = element.find('attribute')
+                  if attribute != None:
+                    partname = etree.SubElement(partnames, 'text')
+                    partname.text = element.get('name')
+                    for k, v in attribute.items():
+                      if k == 'x':
+                        partname.set(k, str(float(v) + x * coloffset))
+                      elif k == 'y':
+                        partname.set(k, str(float(v) + y * rowoffset))
+                      elif k == 'name':
+                        pass
+                      else:
+                        partname.set(k, v)
+
           elif child.tag == 'signals':
-            offsetCopyChildren(shallowCopy(dstboard, child), child)
+            offsetCopyChildren(shallowCopy(dstboard, child), child, True)
           else:
             dstboard.append(child)
       else:
         dstdrawing.append(child)
   else:
     dsteagle.append(child)
+
+if dstplain != None:
+  for elem in partnames:
+    dstplain.append(elem)
 
 print etree.tostring(
     dst, encoding='UTF-8', xml_declaration=True,
