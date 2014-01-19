@@ -1,12 +1,13 @@
 #!/usr/bin/python
 
 from lxml import etree
+import argparse
 import sys
 
-cols = 5
-rows = 3
-coloffset = 35 # mm
-rowoffset = 50 # mm
+cols = 0
+rows = 0
+coloffset = 0.0 # mm
+rowoffset = 0.0 # mm
 
 LAYER_VSCORE = '102'
 
@@ -148,12 +149,60 @@ def panelize(src):
   return dst
 
 def main():
-  parser = etree.XMLParser(remove_blank_text=True)
-  src = etree.parse(sys.stdin, parser)
-  dst = panelize(src)
-  print etree.tostring(
-      dst, encoding='UTF-8', xml_declaration=True,
-      pretty_print=True)
+  argparser = argparse.ArgumentParser(
+      description='Panelizer for EAGLE CAD brd file.')
+  argparser.add_argument('--cols', type=int, required=True,
+      help='Number of colmns (integer).')
+  argparser.add_argument('--rows', type=int, required=True,
+      help='Number of rows (integer).')
+  argparser.add_argument('--coloffset', type=float,
+      help='Column offset width in mm (float).')
+  argparser.add_argument('--rowoffset', type=float,
+      help='Row offset height in mm (float).')
+  argparser.add_argument('--stdout', action='store_true', default=False,
+      help='Write to stdout instead of file.')
+  argparser.add_argument('file', type=str, nargs='+',
+      help='EAGLE CAD brd file to process.')
+
+  args = argparser.parse_args()
+  global cols, rows, coloffset, rowoffset
+  cols = args.cols
+  rows = args.rows
+  if args.coloffset:
+    coloffset = args.coloffset
+  if args.rowoffset:
+    rowoffset = args.rowoffset
+
+  if cols < 1 or rows < 1:
+    print 'cols or rows not properly set.'
+    sys.exit(1)
+  if coloffset <= 0.0 or rowoffset <= 0.0:
+    print 'coloffset or rowoffset not properly set.'
+    sys.exit(1)
+
+  for fname in args.file:
+    if fname == '-':
+      infile = sys.stdin
+      args.stdout = True
+    else:
+      infile = fname
+
+    xmlparser = etree.XMLParser(remove_blank_text=True)
+    src = etree.parse(infile, xmlparser)
+    dst = panelize(src)
+
+    if args.stdout:
+      out = sys.stdout
+    else:
+      a = fname.rsplit('.', 1) + ['']
+      out = open('%s-panel.%s' % (a[0], a[1]), 'w+') # raise
+
+    out.write(
+      etree.tostring(
+        dst, encoding='UTF-8', xml_declaration=True,
+        pretty_print=True
+      )
+    )
 
 if __name__ == '__main__':
   main()
