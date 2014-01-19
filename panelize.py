@@ -43,7 +43,8 @@ def offsetCopyChildren(dst, src, recursive):
       for elem in src:
         offsetCopy(dst, elem, x, y, recursive)
 
-src = etree.parse(sys.stdin)
+parser = etree.XMLParser(remove_blank_text=True)
+src = etree.parse(sys.stdin, parser)
 eagle = src.getroot()
 if eagle.tag != 'eagle':
   raise 'XML %s not supported.' % eagle.tag
