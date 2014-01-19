@@ -38,13 +38,6 @@ def offsetCopy(dst, src, x, y, recursive):
       offsetCopy(elem, child, x, y, True)
   return elem
 
-# Copy children of src as children of dst.
-def offsetCopyChildren(dst, src, recursive):
-  for x in range(cols):
-    for y in range(rows):
-      for elem in src:
-        offsetCopy(dst, elem, x, y, recursive)
-
 def copyPlain(dstplain, plain):
   for elem in plain:
     if elem.tag == 'wire' and elem.get('layer') == LAYER_VSCORE:
@@ -134,7 +127,13 @@ def panelize(src):
                           partname.set(k, v)
 
             elif child.tag == 'signals':
-              offsetCopyChildren(shallowCopy(dstboard, child), child, True)
+              signals = child
+              dstsignals = shallowCopy(dstboard, child)
+              for x in range(cols):
+                for y in range(rows):
+                  for signal in signals:
+                    offsetCopy(dstsignals, signal, x, y, True)
+
             else:
               dstboard.append(child)
         else:
