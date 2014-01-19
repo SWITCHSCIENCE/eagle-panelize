@@ -8,6 +8,8 @@ rows = 3
 coloffset = 35 # mm
 rowoffset = 50 # mm
 
+LAYER_VSCORE = '102'
+
 # Copy src as child of dst.
 def shallowCopy(dst, src):
   elem = etree.SubElement(dst, src.tag)
@@ -43,6 +45,48 @@ def offsetCopyChildren(dst, src, recursive):
       for elem in src:
         offsetCopy(dst, elem, x, y, recursive)
 
+def copyPlain(dstplain, plain):
+  for elem in plain:
+    if elem.tag == 'wire' and elem.get('layer') == LAYER_VSCORE:
+      x1 = elem.get('x1')
+      x2 = elem.get('x2')
+      y1 = elem.get('y1')
+      y2 = elem.get('y2')
+      if x1 == x2:
+        # Vertical
+        y1f = float(y1)
+        y2f = float(y2)
+        if y1f > y2f:
+          y1 = str(y1f + rows * rowoffset - rowoffset)
+        else:
+          y2 = str(y2f + rows * rowoffset - rowoffset)
+        for x in range(cols):
+          x = str(float(x1) + x * coloffset)
+          e = shallowCopy(dstplain, elem)
+          e.set('x1', x)
+          e.set('x2', x)
+          e.set('y1', y1)
+          e.set('y2', y2)
+      elif y1 == y2:
+        # Horizontal
+        x1f = float(x1)
+        x2f = float(x2)
+        if x1f > x2f:
+          x1 = str(x1f + cols * coloffset - coloffset)
+        else:
+          x2 = str(x2f + cols * coloffset - coloffset)
+        for y in range(rows):
+          y = str(float(y1) + y * rowoffset)
+          e = shallowCopy(dstplain, elem)
+          e.set('x1', x1)
+          e.set('x2', x2)
+          e.set('y1', y)
+          e.set('y2', y)
+    else:
+      for x in range(cols):
+        for y in range(rows):
+          offsetCopy(dstplain, elem, x, y, False)
+
 def panelize(src):
   eagle = src.getroot()
   if eagle.tag != 'eagle':
@@ -66,7 +110,8 @@ def panelize(src):
           for child in board:
             if child.tag == 'plain':
               dstplain = shallowCopy(dstboard, child)
-              offsetCopyChildren(dstplain, child, False)
+              copyPlain(dstplain, child)
+
             elif child.tag == 'elements':
               elements = child
               dstelements = shallowCopy(dstboard, child)
