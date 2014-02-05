@@ -8,6 +8,7 @@ LAYER_DIMENSION = '20'
 LAYER_VSCORE = '102'
 
 VSCORE_OUT_LENGTH = 5.0 # mm
+DRILL_DEFAULT = 3.2 # mm
 
 # Copy src as child of dst.
 def shallowCopy(dst, src):
@@ -22,7 +23,7 @@ def shallowCopy(dst, src):
   return elem
 
 class Panelizer:
-  def __init__(self, cols, rows, colspacing, rowspacing, hframe, vframe):
+  def __init__(self, cols, rows, colspacing, rowspacing, hframe, vframe, holex, holey, drill, **kw):
     # Number of columns and rows.
     self.cols = cols
     self.rows = rows
@@ -34,6 +35,11 @@ class Panelizer:
     # Frame width
     self.hframe = hframe # mm or zero
     self.vframe = vframe # mm or zero
+
+    # Holes
+    self.holex = holex # mm
+    self.holey = holey # mm
+    self.drill = drill # mm
 
     # Offset distance to the next board.
     self.coloffset = 0.0 # mm
@@ -129,7 +135,7 @@ class Panelizer:
       y = str(y)
       wire(x1, x2, y, y, str(w), LAYER_VSCORE)
 
-    # Add Dimension
+    # Add dimension
     x1 = str(self.panelminx)
     x2 = str(self.panelmaxx)
     y1 = str(self.panelminy)
@@ -140,12 +146,31 @@ class Panelizer:
     wire(x1, x2, y1, y1, w, LAYER_DIMENSION)
     wire(x1, x2, y2, y2, w, LAYER_DIMENSION)
 
+    # Function to add wire
+    def hole(x, y, drill):
+      elem = etree.SubElement(dstplain, 'hole')
+      elem.set('x', x)
+      elem.set('y', y)
+      elem.set('drill', drill)
+
+    # Add holes
+    if self.holex > 0.0 and self.holey > 0.0 and self.drill > 0.0:
+      x1 = str(self.panelminx + self.holex)
+      x2 = str(self.panelmaxx - self.holex)
+      y1 = str(self.panelminy + self.holey)
+      y2 = str(self.panelmaxy - self.holey)
+      d = str(self.drill)
+      hole(x1, y1, d)
+      hole(x1, y2, d)
+      hole(x2, y1, d)
+      hole(x2, y2, d)
+
   def panelizeXML(self, src):
     eagle = src.getroot()
     if eagle.tag != 'eagle':
       raise 'XML %s not supported.' % eagle.tag
 
-    # Find dimension.
+    # Find board dimension.
     xs = []
     ys = []
     plain = src.xpath('/eagle/drawing/board/plain')
@@ -171,9 +196,9 @@ class Panelizer:
 
     # Panel dimension
     self.panelminx = self.minx - self.vframe
-    self.panelmaxx = self.minx + self.coloffset * self.cols + self.vframe
+    self.panelmaxx = self.minx + self.coloffset * self.cols - self.colspacing + self.vframe
     self.panelminy = self.miny - self.hframe
-    self.panelmaxy = self.miny + self.rowoffset * self.rows + self.hframe
+    self.panelmaxy = self.miny + self.rowoffset * self.rows - self.rowspacing + self.hframe
 
     # Copy root element <eagle>.
     dsteagle = etree.Element('eagle')
@@ -270,6 +295,12 @@ def main():
       help='Horizontal frame height in mm (float).')
   argparser.add_argument('--vframe', type=float, default=0.0,
       help='Vertical frame height in mm (float).')
+  argparser.add_argument('--holex', type=float, default=0.0,
+      help='Hole X position offset from edge in mm (float).')
+  argparser.add_argument('--holey', type=float, default=0.0,
+      help='Hole Y position offset from edge in mm (float).')
+  argparser.add_argument('--drill', type=float, default=DRILL_DEFAULT,
+      help='Hole drill size in mm (float).')
   argparser.add_argument('--stdout', action='store_true', default=False,
       help='Write to stdout instead of file.')
   argparser.add_argument('file', type=str, nargs='+',
@@ -278,20 +309,22 @@ def main():
   args = argparser.parse_args()
 
   if args.cols < 1 or args.rows < 1:
-    print 'cols or rows not properly set.'
+    print 'cols and rows must be 1 or more.'
     sys.exit(1)
   if args.colspacing < 0.0 or args.rowspacing < 0.0:
-    print 'colspacing or colspacing not properly set.'
+    print 'colspacing and colspacing must not be negative.'
     sys.exit(1)
   if args.hframe < 0.0 or args.vframe < 0.0:
-    print 'hframe or vframe not properly set.'
+    print 'hframe and vframe must not be negative.'
+    sys.exit(1)
+  if args.holex < 0.0 or args.holey < 0.0:
+    print 'holex and holey must not be negative.'
+    sys.exit(1)
+  if args.drill <= 0.0:
+    print 'drill must be positive.'
     sys.exit(1)
 
-  panelizer = Panelizer(
-    cols=args.cols, rows=args.rows,
-    colspacing=args.colspacing, rowspacing=args.rowspacing,
-    hframe=args.hframe, vframe=args.vframe,
-  )
+  panelizer = Panelizer(**vars(args))
 
   for fname in args.file:
     if fname == '-':
