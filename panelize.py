@@ -10,7 +10,11 @@ LAYER_VSCORE = '102'
 # Copy src as child of dst.
 def shallowCopy(dst, src):
   elem = etree.SubElement(dst, src.tag)
+
+  # Copy text inside open/close tags.
   elem.text = src.text
+
+  # Copy attributes
   for k, v in src.items():
     elem.set(k, v)
   return elem
