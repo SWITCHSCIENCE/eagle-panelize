@@ -10,6 +10,10 @@ LAYER_VSCORE = '102'
 VSCORE_OUT_LENGTH = 5.0 # mm
 DRILL_DEFAULT = 3.2 # mm
 
+# Exception
+class PanelizeError(Exception):
+  pass
+
 # Copy src as child of dst.
 def shallowCopy(dst, src):
   elem = etree.SubElement(dst, src.tag)
@@ -168,14 +172,14 @@ class Panelizer:
   def panelizeXML(self, src):
     eagle = src.getroot()
     if eagle.tag != 'eagle':
-      raise 'XML %s not supported.' % eagle.tag
+      raise PanelizeError('XML %s not supported.' % eagle.tag)
 
     # Find board dimension.
     xs = []
     ys = []
     plain = src.xpath('/eagle/drawing/board/plain')
     if not plain:
-      raise 'No <plain> found.'
+      raise PanelizeError('No <plain> found.')
     plain = plain[0]
     for elem in plain:
       #XXX Arc and circle not yet supported.
@@ -186,7 +190,7 @@ class Panelizer:
         ys.append(float(elem.get('y2')))
         self.dimensionwidth = max(self.dimensionwidth, float(elem.get('width')))
     if len(xs) == 0 or len(ys) == 0:
-      raise 'No dimension found.'
+      raise PanelizeError('No dimension found.')
     self.minx = min(xs)
     self.maxx = max(xs)
     self.miny = min(ys)
@@ -242,7 +246,7 @@ class Panelizer:
                             partname.set(k, str(float(v) + x * self.coloffset))
                           elif k == 'y':
                             partname.set(k, str(float(v) + y * self.rowoffset))
-                          elif k != 'name':
+                          elif k in ('size', 'layer', 'font', 'rot', 'align'):
                             partname.set(k, v)
 
               elif child.tag == 'signals':
@@ -270,10 +274,16 @@ class Panelizer:
 
   def panelizeFile(self, infile):
     # infile: file name or file object
-    # out: file object
+    # return: XML string
     xmlparser = etree.XMLParser(remove_blank_text=True)
+
+    try:
+      src = etree.parse(infile, xmlparser)
+    except etree.XMLSyntaxError, e:
+      raise PanelizeError(e.msg)
+
     return etree.tostring(
-      self.panelizeXML(etree.parse(infile, xmlparser)),
+      self.panelizeXML(src),
       encoding='UTF-8', xml_declaration=True,
       pretty_print=True
     )
