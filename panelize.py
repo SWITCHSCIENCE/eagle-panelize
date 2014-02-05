@@ -268,16 +268,14 @@ class Panelizer:
 
     return dst
 
-  def panelizeFile(self, infile, out):
+  def panelizeFile(self, infile):
     # infile: file name or file object
     # out: file object
     xmlparser = etree.XMLParser(remove_blank_text=True)
-    out.write(
-      etree.tostring(
-        self.panelizeXML(etree.parse(infile, xmlparser)),
-        encoding='UTF-8', xml_declaration=True,
-        pretty_print=True
-      )
+    return etree.tostring(
+      self.panelizeXML(etree.parse(infile, xmlparser)),
+      encoding='UTF-8', xml_declaration=True,
+      pretty_print=True
     )
 
 def main():
@@ -339,7 +337,7 @@ def main():
       a = fname.rsplit('.', 1) + ['']
       out = open('%s-panel.%s' % (a[0], a[1]), 'w+') # raise
 
-    panelizer.panelizeFile(infile, out)
+    out.write(panelizer.panelizeFile(infile))
 
 if __name__ == '__main__':
   main()
