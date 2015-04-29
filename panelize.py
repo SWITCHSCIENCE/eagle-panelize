@@ -204,6 +204,14 @@ class Panelizer:
     self.panelminy = self.miny - self.hframe
     self.panelmaxy = self.miny + self.rowoffset * self.rows - self.rowspacing + self.hframe
 
+    # Collect the package information
+    packages = {}
+    for pkg in src.iter('package'):
+      for text in pkg.iter('text'):
+        if text.text == '>NAME':
+          packages[pkg.get('name')] = text
+          break
+
     # Copy root element <eagle>.
     dsteagle = etree.Element('eagle')
     for k, v in eagle.items():
@@ -231,23 +239,39 @@ class Panelizer:
                 # Process parts.
                 elements = child
                 dstelements = shallowCopy(dstboard, child)
-                for x in range(self.cols):
-                  for y in range(self.rows):
-                    for element in elements:
-                      self.offsetCopy(dstelements, element, x, y, False)
+                for element in elements:
+                  # smashed=yes
+                  element.set('smashed', 'yes')
 
-                      # Save part name texts for later addition to <plain>
-                      attribute = element.find('attribute')
-                      if attribute != None:
-                        partname = etree.SubElement(partnames, 'text')
-                        partname.text = element.get('name')
-                        for k, v in attribute.items():
-                          if k == 'x':
-                            partname.set(k, str(float(v) + x * self.coloffset))
-                          elif k == 'y':
-                            partname.set(k, str(float(v) + y * self.rowoffset))
-                          elif k in ('size', 'layer', 'font', 'rot', 'align'):
-                            partname.set(k, v)
+                  # Save part name texts for later addition to <plain>
+                  name = element.get('name')
+                  part = element.find('attribute[@name=\'NAME\']')
+                  if part == None:
+                    # This is when the part is not smashed.
+                    x = float(element.get('x'))
+                    y = float(element.get('y'))
+                    part = etree.Element('element')
+                    for k, v in packages[element.get('package')].items():
+                      if k == 'x':
+                        part.set(k, str(x + float(v)))
+                      elif k == 'y':
+                        part.set(k, str(y + float(v)))
+                      else:
+                        part.set(k, v)
+
+                  # Duplicate the part
+                  for x in range(self.cols):
+                    for y in range(self.rows):
+                      self.offsetCopy(dstelements, element, x, y, False)
+                      partname = etree.SubElement(partnames, 'text')
+                      partname.text = name
+                      for k, v in part.items():
+                        if k == 'x':
+                          partname.set(k, str(float(v) + x * self.coloffset))
+                        elif k == 'y':
+                          partname.set(k, str(float(v) + y * self.rowoffset))
+                        elif k != 'name':
+                          partname.set(k, v)
 
               elif child.tag == 'signals':
                 # Process copper.
