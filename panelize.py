@@ -3,6 +3,7 @@
 from lxml import etree
 import argparse
 import sys
+import math
 
 LAYER_DIMENSION = '20'
 LAYER_VSCORE = '102'
@@ -243,35 +244,74 @@ class Panelizer:
                   # smashed=yes
                   element.set('smashed', 'yes')
 
+                  # package text
+                  pkgtext = packages.get(element.get('package'))
+
                   # Save part name texts for later addition to <plain>
                   name = element.get('name')
                   part = element.find('attribute[@name=\'NAME\']')
                   if part == None:
-                    # This is when the part is not smashed.
+                    # This is when the part is not smashed. Smash it!
                     x = float(element.get('x'))
                     y = float(element.get('y'))
-                    part = etree.Element('element')
-                    for k, v in packages[element.get('package')].items():
-                      if k == 'x':
-                        part.set(k, str(x + float(v)))
-                      elif k == 'y':
-                        part.set(k, str(y + float(v)))
+
+                    rot = element.get('rot')
+                    if rot is not None:
+                      th = rot
+                      if th[0] == 'S':    # Ignore Spin flag
+                        th = th[1:]
+                      mirror = False
+                      if th[0] == 'M':
+                        mirror = True
+                        th = th[1:]
+                      if th[0] == 'R':
+                        th = float(th[1:])
                       else:
-                        part.set(k, v)
+                        th = 0.0
+                      if mirror:
+                        th = -th
+                      th = th * 2 * math.pi / 360
+                    else:
+                      th = 0.0
+
+                    part = etree.Element('element')
+                    if pkgtext != None:
+                      # This is when the part has texts.
+                      xoffset = yoffset = 0.0
+                      for k, v in pkgtext.items():
+                        if k == 'x':
+                          xoffset = float(v)
+                        elif k == 'y':
+                          yoffset = float(v)
+
+                      # Rotate
+                      xoffset = xoffset * math.cos(th) - yoffset * math.sin(th)
+                      yoffset = xoffset * math.sin(th) + yoffset * math.cos(th)
+
+                      for k, v in pkgtext.items():
+                        if k == 'x':
+                          part.set(k, str(x + xoffset))
+                        elif k == 'y':
+                          part.set(k, str(y + yoffset))
+                        else:
+                          part.set(k, v)
+                        if rot is not None:
+                          part.set('rot', rot)
 
                   # Duplicate the part
                   for x in range(self.cols):
                     for y in range(self.rows):
                       self.offsetCopy(dstelements, element, x, y, False)
-                      partname = etree.SubElement(partnames, 'text')
-                      partname.text = name
-                      for k, v in part.items():
-                        if k == 'x':
-                          partname.set(k, str(float(v) + x * self.coloffset))
-                        elif k == 'y':
-                          partname.set(k, str(float(v) + y * self.rowoffset))
-                        elif k != 'name':
-                          partname.set(k, v)
+                      if pkgtext != None:
+                        partname = etree.SubElement(partnames, 'text')
+                        partname.text = name
+                        for k, v in part.items():
+                          if k == 'x':
+                            partname.set(k, str(float(v) + x * self.coloffset))
+                          elif k == 'y':
+                            partname.set(k, str(float(v) + y * self.rowoffset))
+                          elif k != 'name':
+                            partname.set(k, v)
 
               elif child.tag == 'signals':
                 # Process copper.
