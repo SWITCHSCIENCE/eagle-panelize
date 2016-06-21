@@ -241,17 +241,17 @@ class Panelizer:
                 elements = child
                 dstelements = shallowCopy(dstboard, child)
                 for element in elements:
-                  # smashed=yes
-                  element.set('smashed', 'yes')
-
                   # package text
                   pkgtext = packages.get(element.get('package'))
 
                   # Save part name texts for later addition to <plain>
                   name = element.get('name')
+                  smashed = element.get('smashed')
                   part = element.find('attribute[@name=\'NAME\']')
-                  if part == None:
-                    # This is when the part is not smashed. Smash it!
+
+                  if smashed != 'yes':
+                    # Not Smashed, smash it.
+                    element.set('smashed', 'yes')
                     x = float(element.get('x'))
                     y = float(element.get('y'))
 
@@ -302,7 +302,7 @@ class Panelizer:
                   for x in range(self.cols):
                     for y in range(self.rows):
                       self.offsetCopy(dstelements, element, x, y, False)
-                      if pkgtext != None:
+                      if part != None and pkgtext != None:
                         partname = etree.SubElement(partnames, 'text')
                         partname.text = name
                         for k, v in part.items():
