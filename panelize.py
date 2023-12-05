@@ -8,12 +8,14 @@ import math
 LAYER_DIMENSION = '20'
 LAYER_VSCORE = '102'
 
-VSCORE_OUT_LENGTH = 5.0 # mm
-DRILL_DEFAULT = 3.2 # mm
+VSCORE_OUT_LENGTH = 5.0  # mm
+DRILL_DEFAULT = 3.2  # mm
+
 
 # Exception
 class PanelizeError(Exception):
   pass
+
 
 # Copy src as child of dst.
 def shallowCopy(dst, src):
@@ -27,6 +29,7 @@ def shallowCopy(dst, src):
     elem.set(k, v)
   return elem
 
+
 class Panelizer:
   def __init__(self, cols, rows, colspacing, rowspacing, hframe, vframe, holex, holey, drill, **kw):
     # Number of columns and rows.
@@ -34,34 +37,34 @@ class Panelizer:
     self.rows = rows
 
     # Board gap width.
-    self.colspacing = colspacing # mm
-    self.rowspacing = rowspacing # mm
+    self.colspacing = colspacing  # mm
+    self.rowspacing = rowspacing  # mm
 
     # Frame width
-    self.hframe = hframe # mm or zero
-    self.vframe = vframe # mm or zero
+    self.hframe = hframe  # mm or zero
+    self.vframe = vframe  # mm or zero
 
     # Holes
-    self.holex = holex # mm
-    self.holey = holey # mm
-    self.drill = drill # mm
+    self.holex = holex  # mm
+    self.holey = holey  # mm
+    self.drill = drill  # mm
 
     # Offset distance to the next board.
-    self.coloffset = 0.0 # mm
-    self.rowoffset = 0.0 # mm
+    self.coloffset = 0.0  # mm
+    self.rowoffset = 0.0  # mm
 
     # Board dimension.
-    self.minx = 0.0 # mm
-    self.maxx = 0.0 # mm
-    self.miny = 0.0 # mm
-    self.maxy = 0.0 # mm
-    self.dimensionwidth = 0.0 # mm
+    self.minx = 0.0  # mm
+    self.maxx = 0.0  # mm
+    self.miny = 0.0  # mm
+    self.maxy = 0.0  # mm
+    self.dimensionwidth = 0.0  # mm
 
     # Panel dimension.
-    self.panelminx = 0.0 # mm
-    self.panelmaxx = 0.0 # mm
-    self.panelminy = 0.0 # mm
-    self.panelmaxy = 0.0 # mm
+    self.panelminx = 0.0  # mm
+    self.panelmaxx = 0.0  # mm
+    self.panelminy = 0.0  # mm
+    self.panelmaxy = 0.0  # mm
 
   # Copy src as child of dst.
   def offsetCopy(self, dst, src, x, y, recursive):
@@ -183,7 +186,7 @@ class Panelizer:
       raise PanelizeError('No <plain> found.')
     plain = plain[0]
     for elem in plain:
-      #XXX Arc and circle not yet supported.
+      # XXX Arc and circle not yet supported.
       if elem.tag == 'wire' and elem.get('layer') == LAYER_DIMENSION:
         xs.append(float(elem.get('x1')))
         xs.append(float(elem.get('x2')))
@@ -216,7 +219,7 @@ class Panelizer:
     # Copy root element <eagle>.
     dsteagle = etree.Element('eagle')
     for k, v in eagle.items():
-      dsteagle.set(k, v) # copy attributes.
+      dsteagle.set(k, v)  # copy attributes.
     dst = etree.ElementTree(dsteagle)
 
     # Variable to save part names.
@@ -352,6 +355,7 @@ class Panelizer:
       pretty_print=True
     )
 
+
 def main():
   argparser = argparse.ArgumentParser(
       description='Panelizer for EAGLE CAD brd file.')
@@ -409,9 +413,10 @@ def main():
       out = sys.stdout
     else:
       a = fname.rsplit('.', 1) + ['']
-      out = open('%s-panel.%s' % (a[0], a[1]), 'w+') # raise
+      out = open('%s-panel.%s' % (a[0], a[1]), 'w+')  # raise
 
     out.write(panelizer.panelizeFile(infile))
+
 
 if __name__ == '__main__':
   main()
