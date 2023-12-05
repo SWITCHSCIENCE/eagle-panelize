@@ -385,19 +385,19 @@ def main():
   args = argparser.parse_args()
 
   if args.cols < 1 or args.rows < 1:
-    print 'cols and rows must be 1 or more.'
+    print('cols and rows must be 1 or more.')
     sys.exit(1)
   if args.colspacing < 0.0 or args.rowspacing < 0.0:
-    print 'colspacing and colspacing must not be negative.'
+    print('colspacing and colspacing must not be negative.')
     sys.exit(1)
   if args.hframe < 0.0 or args.vframe < 0.0:
-    print 'hframe and vframe must not be negative.'
+    print('hframe and vframe must not be negative.')
     sys.exit(1)
   if args.holex < 0.0 or args.holey < 0.0:
-    print 'holex and holey must not be negative.'
+    print('holex and holey must not be negative.')
     sys.exit(1)
   if args.drill <= 0.0:
-    print 'drill must be positive.'
+    print('drill must be positive.')
     sys.exit(1)
 
   panelizer = Panelizer(**vars(args))
