@@ -278,7 +278,7 @@ class Panelizer:
                       th = 0.0
 
                     part = etree.Element('element')
-                    if pkgtext != None:
+                    if pkgtext is not None:
                       # This is when the part has texts.
                       xoffset = yoffset = 0.0
                       for k, v in pkgtext.items():
@@ -305,7 +305,7 @@ class Panelizer:
                   for x in range(self.cols):
                     for y in range(self.rows):
                       self.offsetCopy(dstelements, element, x, y, False)
-                      if part != None and pkgtext != None:
+                      if part is not None and pkgtext is not None:
                         partname = etree.SubElement(partnames, 'text')
                         partname.text = name
                         for k, v in part.items():
@@ -333,7 +333,7 @@ class Panelizer:
         dsteagle.append(child)
 
     # Copy part name texts.
-    if dstplain != None:
+    if dstplain is not None:
       for elem in partnames:
         dstplain.append(elem)
 
