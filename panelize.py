@@ -346,7 +346,7 @@ class Panelizer:
 
     try:
       src = etree.parse(infile, xmlparser)
-    except etree.XMLSyntaxError, e:
+    except etree.XMLSyntaxError as e:
       raise PanelizeError(e.msg)
 
     return etree.tostring(
