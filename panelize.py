@@ -8,12 +8,14 @@ import math
 LAYER_DIMENSION = '20'
 LAYER_VSCORE = '102'
 
-VSCORE_OUT_LENGTH = 5.0 # mm
-DRILL_DEFAULT = 3.2 # mm
+VSCORE_OUT_LENGTH = 5.0  # mm
+DRILL_DEFAULT = 3.2  # mm
+
 
 # Exception
 class PanelizeError(Exception):
   pass
+
 
 # Copy src as child of dst.
 def shallowCopy(dst, src):
@@ -27,6 +29,7 @@ def shallowCopy(dst, src):
     elem.set(k, v)
   return elem
 
+
 class Panelizer:
   def __init__(self, cols, rows, colspacing, rowspacing, hframe, vframe, holex, holey, drill, **kw):
     # Number of columns and rows.
@@ -34,34 +37,34 @@ class Panelizer:
     self.rows = rows
 
     # Board gap width.
-    self.colspacing = colspacing # mm
-    self.rowspacing = rowspacing # mm
+    self.colspacing = colspacing  # mm
+    self.rowspacing = rowspacing  # mm
 
     # Frame width
-    self.hframe = hframe # mm or zero
-    self.vframe = vframe # mm or zero
+    self.hframe = hframe  # mm or zero
+    self.vframe = vframe  # mm or zero
 
     # Holes
-    self.holex = holex # mm
-    self.holey = holey # mm
-    self.drill = drill # mm
+    self.holex = holex  # mm
+    self.holey = holey  # mm
+    self.drill = drill  # mm
 
     # Offset distance to the next board.
-    self.coloffset = 0.0 # mm
-    self.rowoffset = 0.0 # mm
+    self.coloffset = 0.0  # mm
+    self.rowoffset = 0.0  # mm
 
     # Board dimension.
-    self.minx = 0.0 # mm
-    self.maxx = 0.0 # mm
-    self.miny = 0.0 # mm
-    self.maxy = 0.0 # mm
-    self.dimensionwidth = 0.0 # mm
+    self.minx = 0.0  # mm
+    self.maxx = 0.0  # mm
+    self.miny = 0.0  # mm
+    self.maxy = 0.0  # mm
+    self.dimensionwidth = 0.0  # mm
 
     # Panel dimension.
-    self.panelminx = 0.0 # mm
-    self.panelmaxx = 0.0 # mm
-    self.panelminy = 0.0 # mm
-    self.panelmaxy = 0.0 # mm
+    self.panelminx = 0.0  # mm
+    self.panelmaxx = 0.0  # mm
+    self.panelminy = 0.0  # mm
+    self.panelmaxy = 0.0  # mm
 
   # Copy src as child of dst.
   def offsetCopy(self, dst, src, x, y, recursive):
@@ -183,7 +186,7 @@ class Panelizer:
       raise PanelizeError('No <plain> found.')
     plain = plain[0]
     for elem in plain:
-      #XXX Arc and circle not yet supported.
+      # XXX Arc and circle not yet supported.
       if elem.tag == 'wire' and elem.get('layer') == LAYER_DIMENSION:
         xs.append(float(elem.get('x1')))
         xs.append(float(elem.get('x2')))
@@ -216,7 +219,7 @@ class Panelizer:
     # Copy root element <eagle>.
     dsteagle = etree.Element('eagle')
     for k, v in eagle.items():
-      dsteagle.set(k, v) # copy attributes.
+      dsteagle.set(k, v)  # copy attributes.
     dst = etree.ElementTree(dsteagle)
 
     # Variable to save part names.
@@ -275,7 +278,7 @@ class Panelizer:
                       th = 0.0
 
                     part = etree.Element('element')
-                    if pkgtext != None:
+                    if pkgtext is not None:
                       # This is when the part has texts.
                       xoffset = yoffset = 0.0
                       for k, v in pkgtext.items():
@@ -302,7 +305,7 @@ class Panelizer:
                   for x in range(self.cols):
                     for y in range(self.rows):
                       self.offsetCopy(dstelements, element, x, y, False)
-                      if part != None and pkgtext != None:
+                      if part is not None and pkgtext is not None:
                         partname = etree.SubElement(partnames, 'text')
                         partname.text = name
                         for k, v in part.items():
@@ -330,7 +333,7 @@ class Panelizer:
         dsteagle.append(child)
 
     # Copy part name texts.
-    if dstplain != None:
+    if dstplain is not None:
       for elem in partnames:
         dstplain.append(elem)
 
@@ -343,7 +346,7 @@ class Panelizer:
 
     try:
       src = etree.parse(infile, xmlparser)
-    except etree.XMLSyntaxError, e:
+    except etree.XMLSyntaxError as e:
       raise PanelizeError(e.msg)
 
     return etree.tostring(
@@ -351,6 +354,7 @@ class Panelizer:
       encoding='UTF-8', xml_declaration=True,
       pretty_print=True
     )
+
 
 def main():
   argparser = argparse.ArgumentParser(
@@ -381,19 +385,19 @@ def main():
   args = argparser.parse_args()
 
   if args.cols < 1 or args.rows < 1:
-    print 'cols and rows must be 1 or more.'
+    print('cols and rows must be 1 or more.')
     sys.exit(1)
   if args.colspacing < 0.0 or args.rowspacing < 0.0:
-    print 'colspacing and colspacing must not be negative.'
+    print('colspacing and colspacing must not be negative.')
     sys.exit(1)
   if args.hframe < 0.0 or args.vframe < 0.0:
-    print 'hframe and vframe must not be negative.'
+    print('hframe and vframe must not be negative.')
     sys.exit(1)
   if args.holex < 0.0 or args.holey < 0.0:
-    print 'holex and holey must not be negative.'
+    print('holex and holey must not be negative.')
     sys.exit(1)
   if args.drill <= 0.0:
-    print 'drill must be positive.'
+    print('drill must be positive.')
     sys.exit(1)
 
   panelizer = Panelizer(**vars(args))
@@ -409,9 +413,10 @@ def main():
       out = sys.stdout
     else:
       a = fname.rsplit('.', 1) + ['']
-      out = open('%s-panel.%s' % (a[0], a[1]), 'w+') # raise
+      out = open('%s-panel.%s' % (a[0], a[1]), 'w+')  # raise
 
     out.write(panelizer.panelizeFile(infile))
+
 
 if __name__ == '__main__':
   main()
